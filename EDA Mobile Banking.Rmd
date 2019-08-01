@@ -1,0 +1,282 @@
+---
+title: "EDA OF MOBILE BANKING DATA IN KENYA"
+author: "Carlvin Jerry"
+date: "8/1/2019"
+output: 
+   html_document:
+    number_sections: true
+    theme: united
+    highlight: tango
+    toc: true
+    toc_float: true
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# INTRODUCTION & TOOLS USED
+
+The following is a submission for the interview proposed for the Data Analyst position at Kiboma Research Center. The data analysis has been done in R Programming Language and this report has been generated using RMarkdown which is a tool for knitting reports in different formats in R Language.
+
+# ANALYSIS
+## Data Importation
+ The code chunk below imports our dataset into R.
+```{r MobileBankingDF, warning=FALSE}
+#Loading Data into R  toc_depth: 2
+mobileBanking.Df <- read.csv("Mobile Banking in Kenya.csv", header = TRUE, stringsAsFactors = FALSE )
+mobileBanking.Df <- mobileBanking.Df[,-1] #Remove the number column which is Irrelevant
+
+```
+
+### Data Inspection
+ With our sample dataset loaded, we can inspect that it was loaded correctly and check for features present in it. We first need to load all the libraries we need for data analysis and manipulation.
+ 
+```{r Load libraries, include=FALSE, results='hide'}
+ #Load required packages or install if not present.----
+load.libraries <- c('data.table','tidyverse','gridExtra', 'corrplot', 'GGally', 'ggplot2', 'e1071', 'dplyr')
+install.lib <- load.libraries[!load.libraries %in% installed.packages()]
+
+for(libs in install.lib) install.packages(libs, dependences = TRUE)
+
+#Load libraries and flag TRUE
+sapply(load.libraries, require, character = TRUE)
+
+```
+
+Here we can see whether all the required packages were loaded.
+```{r Confirmpackages, echo=FALSE}
+#library(kableExtra)
+#Load libraries and flag TRUE
+sapply(load.libraries, require, character = TRUE)
+```
+
+<br>
+
+#### Observing the data structure
+```{r Data sructure}
+
+dim(mobileBanking.Df)
+```
+The dataset has 43 rows with 11 Variables. We therefore explore the data types present in the variable columns.
+
+```{r dataTypes, echo=TRUE}
+#Check Categorical VS Numeric Characters----
+cat_vars <- names(mobileBanking.Df)[which(sapply(mobileBanking.Df, is.character))]
+cat_vars
+            #cat_vars <- c(cat_vars, 'BedroomAbvGr', 'HalfBath', ' KitchenAbvGr','BsmtFullBath', 'BsmtHalfBath', 'MSSubClass')
+
+numeric_vars <- names(mobileBanking.Df)[which(sapply(mobileBanking.Df, is.numeric))]
+numeric_vars
+
+```
+It can be seen that all the variables in our data set are categorical variables. We will therefore explore the data from a categorical approach rather than numeric. 
+Now that we have establish the general structure of the data, we can check if there are any missing values withing the variables.
+
+```{r}
+#Checking data for any missing values
+colSums(sapply(mobileBanking.Df, is.na))
+```
+
+This means that there are no columns with missing values in them. This therefore allows us to proceed to analysis without worrying about missing values. The summary of the data set can hence be seen below.
+
+```{r}
+#Data Summary----
+summary(mobileBanking.Df)
+```
+<br>
+Looking at the summary above, we can see that all our variables are **characters**, which confirms our earlier check that we will have only categorical variables to analyze. Next, we look at some basic distributions of the data.
+<br>
+<br>
+
+# Getting Insights from the data
+```{r Plorfunction, include=FALSE}
+
+####Convert character to factors----
+setDT(mobileBanking.Df)[,(cat_vars) := lapply(.SD, as.factor), .SDcols = cat_vars]
+
+mobileBanking.Df_cat <- mobileBanking.Df[,.SD, .SDcols = cat_vars]
+    ##mobileBanking.Df_cont <- mobileBanking.Df[,.SD,.SDcols = numeric_vars]
+
+#Functions for Plots---
+
+plotHist <- function(data_in, i) {
+  data <- data.frame(x=data_in[[i]])
+  p <- ggplot(data=data, aes(x=factor(x))) + stat_count() + xlab(colnames(data_in)[i]) + theme_light() + 
+    theme(axis.text.x = element_text(angle = 90, hjust =1))
+  return (p)
+}
+
+doPlots <- function(data_in, fun, ii, ncol=3) {
+  pp <- list()
+  for (i in ii) {
+    p <- fun(data_in=data_in, i=i)
+    pp <- c(pp, list(p))
+  }
+  do.call("grid.arrange", c(pp, ncol=ncol))
+}
+
+plotDen <- function(data_in, i){
+  data <- data.frame(x=data_in[[i]], SalePrice = data_in$SalePrice)
+  p <- ggplot(data= data) + geom_line(aes(x = x), stat = 'density', size = 1,alpha = 1.0) +
+    xlab(paste0((colnames(data_in)[i]), '\n', 'Skewness: ',round(skewness(data_in[[i]], na.rm = TRUE), 2))) + theme_light() 
+  return(p)
+  
+}
+
+```
+
+## Variable Distributions
+```{r barplots1, echo=FALSE}
+#Plotting categorical values----
+#Bar plots
+doPlots(mobileBanking.Df_cat, fun = plotHist, ii = 1:4, ncol = 2)
+
+# ##TO DO EXPLAIN -------
+# 
+# #Histograms
+# doPlots(mobileBanking.Df_cat, fun = plotHist, ii  = 4:7, ncol = 2)
+# 
+# ##TO DO EXPLAIN -------
+# 
+# #Bar plots
+# doPlots(mobileBanking.Df_cat, fun = plotHist, ii = 8:11, ncol = 2)
+# 
+# ##TO DO EXPLAIN -------
+
+```
+
+<br>
+
+### Gender
+It can be seen that a larger number of respondents were male, this is however by a small margin. If we had a larger data set we could have more female respondents.
+
+<br>
+
+#### Age Range
+A majority of respondents were younger guys between age **21-30**, followed by the **31-40** age bracket. The least respondents were those above age **41**. This could be probably because the older people chose not to participate in the survey as opposed to the younger ones, or that they somehow never got to opportunity to do so. A good example is the medium by which the survey was conducted, which the older people didn't have.
+
+<br>
+
+##### Have Bank Account & Linked To Mobile Banking  
+All the respondents had bank accounts. A very small number had their business bank accounts linked to mobile banking. Majority had linked their current accounts probably due to the convenience that comes with mobile banking like frequent or timeless withdrawals. 
+
+<br>
+<br>
+
+```{r barplots2, echo=FALSE}
+#Plotting categorical values----
+#Bar plots
+#doPlots(mobileBanking.Df_cat, fun = plotHist, ii = 1:4, ncol = 2)
+
+# ##TO DO EXPLAIN -------
+# 
+# #Histograms
+ doPlots(mobileBanking.Df_cat, fun = plotHist, ii  = 4:7, ncol = 2)
+# 
+# ##TO DO EXPLAIN -------
+# 
+# #Bar plots
+# doPlots(mobileBanking.Df_cat, fun = plotHist, ii = 8:11, ncol = 2)
+# 
+# ##TO DO EXPLAIN -------
+
+```
+
+<br>
+
+###### Uses Of Mobile Banking, Importance And Benefits
+Most respondents use mobile banking services for making payments. this is followed by cash withdrawals. Airtime purchase and money transfer happen to be the least uses for the service. This could be because they are easily accessible needs unlike cash withdrawal and making payments in terms of mobility convenience.
+
+Most respondents found mobile banking services **very important**, probably owing to the affordable cost charges and good service which could mean less usability issues when using the services.
+
+***
+
+<br>
+<br>
+
+
+```{r barplots3, echo=FALSE}
+#Plotting categorical values----
+#Bar plots
+#doPlots(mobileBanking.Df_cat, fun = plotHist, ii = 1:4, ncol = 2)
+
+# ##TO DO EXPLAIN -------
+# 
+# #Histograms
+# doPlots(mobileBanking.Df_cat, fun = plotHist, ii  = 4:7, ncol = 2)
+# 
+# ##TO DO EXPLAIN -------
+# 
+# #Bar plots
+ doPlots(mobileBanking.Df_cat, fun = plotHist, ii = 8:11, ncol = 2)
+# 
+# ##TO DO EXPLAIN -------
+
+```
+
+<br>
+
+###### Bank Visits
+We had most users who visit their banks a few times a year while the least do it once a month. This means that generally, fewer people visit the bank physically. This could be a major impact of mobile banking services.
+
+<br>
+
+###### Mobile Banking Safety, Influence And Satisfaction
+Despite being majorly satisfied by the services, most respondents did not find mobile banking services very safe. It is also seen as time saving which is probably why we had very few bank visits in general. 
+
+<br>
+
+###### Conclusion from variable distributions
+It can be concluded that mobile banking is mainly preferred by younger people, a majority being of the male gender. However, the only benefit most users find from mobile banking seems to be the convenience it brings. Safety is still a major concern.
+
+<br>
+<br>
+
+# Visualizing Distribution By Gender
+For this analysis, I settled for the two most important benefits of mobile banking based on the data. That is **Satisfaction** and **Safety**. Looking at preferences for the same in terms of gender gives us the result below.
+
+```{r echo=FALSE}
+#ggplot(mobileBanking.Df, aes(x = Gender, fill = Have.Bak.Account)) + geom_bar()
+
+# xtabs(~ Gender + Satisfaction, data = mobileBanking.Df)
+ggplot(mobileBanking.Df, aes(x = Gender, fill = Satisfaction)) +  geom_bar()
+# 
+# xtabs(~ Gender + MB.used.for, data = mobileBanking.Df)
+# xtabs(~ Gender + MB.Safety, data = mobileBanking.Df)
+# xtabs(~ Gender + Age.Range, data = mobileBanking.Df)
+# xtabs(~ Age.Range + Importance, data = mobileBanking.Df)
+# xtabs(~ Age.Range + Gender + Bank.Visit, data = mobileBanking.Df)
+# xtabs(~ Age.Range +Gender + Influence, data = mobileBanking.Df)
+# 
+# 
+# xtabs(~ Gender + MB.used.for, data = mobileBanking.Df)
+```
+
+The males seem to be more satisfied with mobile banking services unlike the females. However, since the data is not evenly distributed, we might not have the true reflection.
+
+<br>
+<br>
+
+```{r echo=FALSE}
+#ggplot(mobileBanking.Df, aes(x = Gender, fill = Have.Bak.Account)) + geom_bar()
+
+# xtabs(~ Gender + Satisfaction, data = mobileBanking.Df)
+ggplot(mobileBanking.Df, aes(x = Gender, fill = MB.Safety)) +  geom_bar()
+# 
+# xtabs(~ Gender + MB.used.for, data = mobileBanking.Df)
+# xtabs(~ Gender + MB.Safety, data = mobileBanking.Df)
+# xtabs(~ Gender + Age.Range, data = mobileBanking.Df)
+# xtabs(~ Age.Range + Importance, data = mobileBanking.Df)
+# xtabs(~ Age.Range + Gender + Bank.Visit, data = mobileBanking.Df)
+# xtabs(~ Age.Range +Gender + Influence, data = mobileBanking.Df)
+# 
+# 
+# xtabs(~ Gender + MB.used.for, data = mobileBanking.Df)
+```
+
+Looking at mobile banking safety, males appear to be more skeptical than females. We however had a few number of females who felt that mobile banking is **totally not safe** for them. More females than males felt that mobile banking is **very** safe.
+
+ 
+ 
