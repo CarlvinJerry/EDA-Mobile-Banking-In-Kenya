@@ -134,3 +134,5 @@ xtabs(~ Age.Range +Gender + Influence, data = mobileBanking.Df)
 
 xtabs(~ Gender + MB.used.for, data = mobileBanking.Df)
 
+names(mobileBanking.Df)
+table(mobileBanking.Df$Gender, mobileBanking.Df$MB.Safety)

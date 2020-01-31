@@ -262,7 +262,8 @@ The males seem to be more satisfied with mobile banking services unlike the fema
 ```{r echo=FALSE}
 #ggplot(mobileBanking.Df, aes(x = Gender, fill = Have.Bak.Account)) + geom_bar()
 
-# xtabs(~ Gender + Satisfaction, data = mobileBanking.Df)
+# 
+xtabs(~ Gender + Satisfaction, data = mobileBanking.Df) %>%  mosaicplot()
 ggplot(mobileBanking.Df, aes(x = Gender, fill = MB.Safety)) +  geom_bar()
 # 
 # xtabs(~ Gender + MB.used.for, data = mobileBanking.Df)
